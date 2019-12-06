@@ -70,6 +70,50 @@ fn get_intersection(wire: &Wire, other: &Wire) -> Option<Point> {
     }
 }
 
+fn get_dist_on_path(wire: &Wire, point: &Point) -> Option<i64> {
+    if wire.p0.x == wire.p1.x && wire.p1.x == point.x {
+        let y0 = wire.p0.y;
+        let y1 = wire.p1.y;
+        let y = point.y;
+        if (y >= y0 && y <= y1) || (y >= y1 && y <= y0) {
+            Some(i64::abs(y - y0))
+        } else {
+            None
+        }
+    } else if wire.p0.y == wire.p1.y && wire.p1.y == point.y {
+        let x0 = wire.p0.x;
+        let x1 = wire.p1.x;
+        let x = point.x;
+        if (x >= x0 && x <= x1) || (x >= x1 && x <= x0) {
+            Some(i64::abs(x - x0))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+fn manhattan(p1: &Point, p2: &Point) -> i64 {
+    i64::abs(p1.x - p2.x) + i64::abs(p1.y - p2.y)
+}
+
+fn get_steps(wire: &Vec<Wire>, point: &Point) -> i64 {
+    let mut steps: i64 = 0;
+    for w in wire {
+        match get_dist_on_path(w, point) {
+            None => {
+                steps += manhattan(&w.p0, &w.p1)
+            },
+            Some(d) => {
+                steps += d;
+                break;
+            }
+        }
+    }
+    steps
+}
+
 fn main() {
     let lines: Vec<String> = read_lines("input.in").collect();
 
@@ -82,7 +126,7 @@ fn main() {
             let isect = get_intersection(&a, &b);
             match isect {
                 Some(p) => {
-                    let new_dist = i64::abs(p.x) + i64::abs(p.y);
+                    let new_dist = manhattan(&p, &(Point {x: 0, y: 0}));
                     if new_dist < dist && new_dist > 0 {
                         dist = new_dist;
                     }
@@ -92,4 +136,21 @@ fn main() {
         }
     }
     println!("Best dist: {}", dist);
+
+    let mut dist2 = 999999999;
+    for a in &wire1 {
+        for b in &wire2 {
+            let isect = get_intersection(&a, &b);
+            match isect {
+                Some(p) => {
+                    let new_dist = get_steps(&wire1, &p) + get_steps(&wire2, &p);
+                    if new_dist < dist2 && new_dist > 0 {
+                        dist2 = new_dist;
+                    }
+                },
+                None => {},
+            }
+        }
+    }
+    println!("Best dist2: {}", dist2);
 }

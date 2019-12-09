@@ -44,6 +44,29 @@ impl Image {
         }
         count
     }
+
+    fn collapse(&self) -> Image {
+        let mut data = Vec::new();
+
+        let layers = self.num_layers();
+        for y in 0..self.h {
+            for x in 0..self.w {
+                for i in 0..layers {
+                    let pixel = self.get(i, x, y);
+                    if pixel < 2 {
+                        data.push(pixel);
+                        break;
+                    }
+                }
+            }
+        }
+
+        Image {
+            w: self.w,
+            h: self.h,
+            data
+        }
+    }
 }
 
 fn main() {
@@ -62,4 +85,13 @@ fn main() {
         }
     }
     println!("part 1: layer {} with {}", best, best_val);
+
+    let image2 = image.collapse();
+    println!("part 2:");
+    for y in 0..image2.h {
+        for x in 0..image2.w {
+            print!("{}", image2.get(0, x, y));
+        }
+        println!();
+    }
 }

@@ -62,6 +62,38 @@ fn simulate(mut mem: Vec<i64>, input: Vec<i64>) {
                 println!("vm: {}", val);
                 pos += 2;
             }
+            5 => {
+                let cond = get_arg(&mem, 0);
+                let target = get_arg(&mem, 1);
+                if cond != 0 {
+                    pos = target as usize;
+                } else {
+                    pos += 3;
+                }
+            }
+            6 => {
+                let cond = get_arg(&mem, 0);
+                let target = get_arg(&mem, 1);
+                if cond == 0 {
+                    pos = target as usize;
+                } else {
+                    pos += 3;
+                }
+            }
+            7 => {
+                let a = get_arg(&mem, 0);
+                let b = get_arg(&mem, 1);
+                let val = (a < b) as i64;
+                write_arg(&mut mem, 2, val);
+                pos += 4;
+            }
+            8 => {
+                let a = get_arg(&mem, 0);
+                let b = get_arg(&mem, 1);
+                let val = (a == b) as i64;
+                write_arg(&mut mem, 2, val);
+                pos += 4;
+            }
             99 => { break; }
             _ => {
                 panic!("bad opcode: {}", opcode);
@@ -75,6 +107,11 @@ fn main() {
     let mem: Vec<i64> = line.split(",").map(|x| x.parse::<i64>().unwrap()).collect();
     println!("len: {}", mem.len());
 
+    println!("part 1:");
     let input = [1].to_vec();
+    simulate(mem.to_vec(), input);
+
+    println!("part 2:");
+    let input = [5].to_vec();
     simulate(mem.to_vec(), input);
 }

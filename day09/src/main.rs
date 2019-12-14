@@ -190,4 +190,10 @@ fn main() {
     machine.add_input(1);
     machine.run();
     println!("Part 1: {}", machine.get_output());
+
+    // Part 2.
+    let mut machine = Machine::new(&mem);
+    machine.add_input(2);
+    machine.run();
+    println!("Part 2: {}", machine.get_output());
 }

@@ -2,7 +2,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use crate::MachineStatus::{BadOpcode, Finished, Blocked};
 use std::collections::HashMap;
-use std::cmp::{min, max};
+use std::cmp::Ordering;
+
 
 
 fn read_lines(filename: &str) -> impl Iterator<Item=String> {
@@ -187,30 +188,111 @@ impl Machine {
 }
 
 struct World {
+    machine:  Machine,
     tiles: HashMap<(i64, i64), i64>,
+    score: i64,
+
+    paddle_x: i64,
+    ball_x: i64,
 }
 
 impl World {
-    fn new() -> World {
+    fn new(machine: Machine) -> World {
         World {
+            machine,
             tiles: HashMap::new(),
+            score: 0,
+            paddle_x: 0,
+            ball_x: 0,
         }
+    }
+
+    fn print(&self) {
+        let (min_x, max_x) = range(self.tiles.keys().map(|(x, _)| *x));
+        let (min_y, max_y) = range(self.tiles.keys().map(|(_, y)| *y));
+
+        for y in min_y..(max_y + 1) {
+            for x in min_x..(max_x + 1) {
+                let tile = *self.tiles.get(&(x, y)).unwrap_or(&0);
+                print!("{}", match tile {
+                    0 => " ",
+                    1 => "#",
+                    2 => "x",
+                    3 => "-",
+                    4 => "o",
+                    _ => "?",
+                });
+            }
+            println!();
+        }
+        println!("Score: {}", self.score);
+    }
+
+    fn process(&mut self) {
+        self.machine.run();
+        let output = &self.machine.outputs;
+
+        for chunk in output.chunks(3) {
+            let x = chunk[0];
+            let y = chunk[1];
+            let tile = chunk[2];
+            self.tiles.insert((x, y), tile);
+        }
+    }
+
+    fn play(&mut self) {
+        self.machine.mem[0] = 2;
+
+        loop {
+            self.machine.outputs.clear();
+            self.machine.run();
+            let output = &self.machine.outputs;
+
+            // Process output.
+            for chunk in output.chunks(3) {
+                let x = chunk[0];
+                let y = chunk[1];
+                let tile = chunk[2];
+                if x == -1 && y == 0 {
+                    self.score = tile;
+                } else {
+                    self.tiles.insert((x, y), tile);
+
+                    if tile == 3 {
+                        self.paddle_x = x;
+                    }
+                    if tile == 4 {
+                        self.ball_x = x;
+                    }
+                }
+            }
+
+            if self.count_blocks() == 0 {
+                return;
+            }
+
+            if self.machine.status == MachineStatus::Finished {
+                println!("Finished.");
+                return;
+            }
+
+            self.machine.add_input(match self.ball_x.cmp(&self.paddle_x) {
+                Ordering::Less => -1,
+                Ordering::Equal => 0,
+                Ordering::Greater => 1,
+            });
+        }
+    }
+
+    fn count_blocks(&self) -> usize {
+        self.tiles.values().filter(|x| **x == 2).count()
     }
 }
 
-fn process_world(mut machine: Machine) -> World {
-    let mut world = World::new();
-    machine.run();
-    let output = machine.outputs;
-
-    for chunk in output.chunks(3) {
-        let x = chunk[0];
-        let y = chunk[1];
-        let tile = chunk[2];
-        world.tiles.insert((x, y), tile);
-    }
-
-    world
+fn range(nums: impl Iterator<Item=i64> + std::clone::Clone) -> (i64, i64) {
+    let min = nums.clone().min().unwrap();
+    let max = nums.clone().max().unwrap();
+    (min, max)
 }
 
 fn main() {
@@ -219,7 +301,14 @@ fn main() {
 
     // Part 1.
     let machine = Machine::new(&mem);
-    let world = process_world(machine);
-    let mut num_blocks = world.tiles.values().filter(|x| **x == 2).count();
-    println!("Num Blocks: {}", num_blocks);
+    let mut world = World::new(machine);
+    world.process();
+    println!("Num Blocks: {}", world.count_blocks());
+    world.print();
+
+    // Part 2.
+    let machine = Machine::new(&mem);
+    let mut world = World::new(machine);
+    world.play();
+    world.print();
 }

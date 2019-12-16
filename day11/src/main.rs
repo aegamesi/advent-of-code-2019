@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use crate::MachineStatus::{BadOpcode, Finished, Blocked};
 use std::collections::HashMap;
+use std::cmp::{min, max};
 
 
 fn read_lines(filename: &str) -> impl Iterator<Item=String> {
@@ -185,8 +186,7 @@ impl Machine {
     }
 }
 
-fn run_robot(mut machine: Machine) -> usize {
-    let mut map: HashMap<(i32, i32), i64> = HashMap::new();
+fn run_robot(mut map: HashMap<(i32, i32), i64>, mut machine: Machine) -> HashMap<(i32, i32), i64> {
     let mut x = 0;
     let mut y = 0;
     let mut dx = 0;
@@ -238,7 +238,33 @@ fn run_robot(mut machine: Machine) -> usize {
         };
     }
 
-    map.len()
+    map
+}
+
+fn print_map(map: HashMap<(i32, i32), i64>) {
+    let mut min_x = 0;
+    let mut min_y = 0;
+    let mut max_x = 0;
+    let mut max_y = 0;
+
+    for (pos, _) in map.iter() {
+        min_x = min(min_x, pos.0);
+        min_y = min(min_y, pos.1);
+        max_x = max(max_x, pos.0);
+        max_y = max(max_y, pos.1);
+    }
+
+    for y in min_y..(max_y + 1) {
+        for x in min_x..(max_x + 1) {
+            let color = *map.get(&(x, y)).unwrap_or(&0);
+            if color != 0 {
+                print!("\u{2588}");
+            } else {
+                print!(" ");
+            }
+        }
+        println!();
+    }
 }
 
 
@@ -248,6 +274,13 @@ fn main() {
 
     // Part 1.
     let mut machine = Machine::new(&mem);
-    let tiles = run_robot(machine);
-    println!("Num Tiles: {}", tiles);
+    let tiles = run_robot(HashMap::new(), machine);
+    println!("Num Tiles: {}", tiles.len());
+
+    // Part 2.
+    let mut machine = Machine::new(&mem);
+    let mut map = HashMap::new();
+    map.insert((0, 0), 1);
+    let map = run_robot(map, machine);
+    print_map(map);
 }

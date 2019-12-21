@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use crate::MachineStatus::{BadOpcode, Finished, Blocked};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 fn read_lines(filename: &str) -> impl Iterator<Item=String> {
     let file = File::open(filename).unwrap();
@@ -361,6 +361,40 @@ impl World {
             }
         }
     }
+
+    fn get_oxygen_pos(&self) -> Position {
+        let (pos, _) = self.tiles.iter().filter(|(k, v)| **v == TileKind::Oxygen).next().unwrap();
+        *pos
+    }
+
+    fn time_to_spread(&self) -> usize {
+        let oxygen_pos = self.get_oxygen_pos();
+        let mut visited: HashSet<Position> = HashSet::new();
+        let mut fringe: Vec<(Position, usize)> = Vec::new();
+        fringe.push((oxygen_pos, 0));
+        let mut max_time = 0;
+
+        while fringe.len() > 0 {
+            let (curr, time) = fringe.remove(0);
+
+            if visited.contains(&curr) {
+                continue;
+            }
+            visited.insert(curr);
+
+            if time > max_time {
+                max_time = time;
+            }
+
+            for neighbor in curr.neighbors() {
+                if *self.tiles.get(&neighbor).unwrap_or(&TileKind::Unknown) == TileKind::Empty {
+                    fringe.push((neighbor, time + 1));
+                }
+            }
+        }
+
+        max_time
+    }
 }
 
 
@@ -371,8 +405,11 @@ fn main() {
     // Part 1.
     let mut world = World::new(&mem);
     world.explore();
-    let (oxygen_pos, _) = world.tiles.iter().filter(|(k, v)| **v == TileKind::Oxygen).next().unwrap();
+    let oxygen_pos = world.get_oxygen_pos();
     println!("pos: {}, {}", oxygen_pos.0, oxygen_pos.1);
-    let path = world.get_path(oxygen_pos);
+    let path = world.get_path(&oxygen_pos);
     println!("path len: {}", path.len());
+
+    let time = world.time_to_spread();
+    println!("time to spread: {}", time);
 }
